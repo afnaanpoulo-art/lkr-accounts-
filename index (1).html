@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CITY GLASS ACCOUNTS LEDGER</title>
+<style>
+  :root {
+    --primary: #0f172a;
+    --accent: #3b82f6;
+    --success: #10b981;
+    --danger: #ef4444;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --border: #e2e8f0;
+  }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--primary);
+    padding: 15px;
+    line-height: 1.5;
+  }
+
+ .container { max-width: 1200px; margin: 0 auto; }
+
+  header {
+    background: linear-gradient(135deg, var(--primary), #1e293b);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  header h1 { font-size: 22px; font-weight: 700; }
+  header p { opacity: 0.8; font-size: 14px; margin-top: 5px; }
+
+ .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  @media(min-width: 900px) {
+   .grid { grid-template-columns: 380px 1fr; }
+  }
+
+ .card {
+    background: var(--card);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid var(--border);
+  }
+
+ .card h3 {
+    font-size: 16px;
+    margin-bottom: 15px;
+    color: var(--primary);
+  }
+
+ .stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  @media(min-width: 600px) {
+   .stats { grid-template-columns: repeat(4, 1fr); }
+  }
+
+ .stat-box {
+    background: var(--card);
+    padding: 16px;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+
+ .stat-box p { font-size: 12px; color: #64748b; text-transform: uppercase; }
+ .stat-box h3 { font-size: 22px; margin-top: 5px; font-weight: 700; }
+ .stat-box.income { color: var(--success); }
+ .stat-box.expense { color: var(--danger); }
+
+  input, select, button {
+    width: 100%;
+    padding: 12px;
+    margin: 6px 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+  }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+  }
+
+  button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  button:hover { opacity: 0.9; }
+  button:active { transform: scale(0.98); }
+
+ .btn-success { background: var(--success); }
+ .btn-danger { background: var(--danger); }
+ .btn-secondary { background: #64748b; }
+
+ .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 10px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+  }
+
+  th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+
+  th {
+    background: #f8fafc;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+  }
+
+ .badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+ .badge-income { background: #dcfce7; color: #166534; }
+ .badge-expense { background: #fee2e2; color: #991b1b; }
+
+ .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #64748b;
+  }
+
+ .filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+  }
+
+ .filters input,.filters select {
+    flex: 1;
+    min-width: 150px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>CITY GLASS LEDGER</h1>
+  <p>Track your business income & expenses in Sri Lankan Rupees</p>
+</header>
+
+<div class="stats">
+  <div class="stat-box">
+    <p>Total Income</p>
+    <h3 class="income" id="statIncome">Rs. 0.00</h3>
+  </div>
+  <div class="stat-box">
+    <p>Total Expense</p>
+    <h3 class="expense" id="statExpense">Rs. 0.00</h3>
+  </div>
+  <div class="stat-box">
+    <p>Net Profit</p>
+    <h3 id="statProfit">Rs. 0.00</h3>
+  </div>
+  <div class="stat-box">
+    <p>Balance</p>
+    <h3 id="statBalance">Rs. 0.00</h3>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>New Transaction</h3>
+    <input type="date" id="date">
+    <input type="text" id="details" placeholder="Description">
+    <select id="type">
+      <option value="Income">Income</option>
+      <option value="Expense">Expense</option>
+    </select>
+    <input type="number" id="amount" placeholder="Amount LKR" inputmode="decimal" step="0.01">
+    <input type="number" id="tax" placeholder="VAT/GST %" value="0" inputmode="decimal" step="0.01">
+    <input type="text" id="category" placeholder="Category e.g. Sales, Rent">
+    <button onclick="addEntry()">Add Transaction</button>
+
+    <hr style="margin: 15px 0; border: none; border-top: 1px solid var(--border);">
+
+    <button class="btn-success" onclick="exportCSV()">Export CSV</button>
+    <button class="btn-secondary" onclick="window.print()">Print / Save PDF</button>
+    <button class="btn-danger" onclick="clearData()">Clear All Data</button>
+  </div>
+
+  <div class="card">
+    <h3>Transaction History</h3>
+
+    <div class="filters">
+      <input type="text" id="search" placeholder="Search..." onkeyup="renderTable()">
+      <input type="month" id="filterMonth" onchange="renderTable()">
+      <select id="filterType" onchange="renderTable()">
+        <option value="">All Types</option>
+        <option value="Income">Income</option>
+        <option value="Expense">Expense</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      <table id="table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Category</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Tax</th>
+            <th>Total</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const STORAGE_KEY = 'lkr_accounts_v1';
+let entries = [];
+
+function loadData() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    entries = saved? JSON.parse(saved) : [];
+  } catch(e) {
+    entries = [];
+    console.error('Load error:', e);
+  }
+}
+
+function saveData() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  } catch(e) {
+    alert('Storage full. Please export and clear old data.');
+  }
+  updateStats();
+}
+
+function formatLKR(amount) {
+  return 'Rs. ' + parseFloat(amount).toLocaleString('en-LK', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+function addEntry() {
+  const date = document.getElementById('date').value;
+  const details = document.getElementById('details').value.trim();
+  const type = document.getElementById('type').value;
+  const amount = parseFloat(document.getElementById('amount').value);
+  const tax = parseFloat(document.getElementById('tax').value) || 0;
+  const category = document.getElementById('category').value.trim() || 'General';
+
+  if (!date ||!details ||!amount || amount <= 0) {
+    alert('Please fill all required fields correctly');
+    return;
+  }
+
+  const taxAmount = (amount * tax) / 100;
+  const total = amount + taxAmount;
+
+  entries.unshift({
+    id: Date.now(),
+    date,
+    details,
+    type,
+    amount,
+    tax,
+    taxAmount,
+    total,
+    category
+  });
+
+  saveData();
+  renderTable();
+  clearInputs();
+}
+
+function renderTable() {
+  const tbody = document.querySelector('#table tbody');
+  const search = document.getElementById('search').value.toLowerCase();
+  const filterMonth = document.getElementById('filterMonth').value;
+  const filterType = document.getElementById('filterType').value;
+
+  const filtered = entries.filter(e => {
+    const matchSearch = e.details.toLowerCase().includes(search) ||
+                        e.category.toLowerCase().includes(search);
+    const matchMonth =!filterMonth || e.date.startsWith(filterMonth);
+    const matchType =!filterType || e.type === filterType;
+    return matchSearch && matchMonth && matchType;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">No transactions found</div></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(e => `
+    <tr>
+      <td>${e.date}</td>
+      <td>${e.details}</td>
+      <td>${e.category}</td>
+      <td><span class="badge ${e.type === 'Income'? 'badge-income' : 'badge-expense'}">${e.type}</span></td>
+      <td>${formatLKR(e.amount)}</td>
+      <td>${e.tax}% (${formatLKR(e.taxAmount)})</td>
+      <td><strong>${formatLKR(e.total)}</strong></td>
+      <td><button class="btn-danger" style="padding:6px 12px; width:auto; font-size:13px;" onclick="deleteEntry(${e.id})">Delete</button></td>
+    </tr>
+  `).join('');
+}
+
+function updateStats() {
+  let income = 0, expense = 0;
+  entries.forEach(e => {
+    if (e.type === 'Income') income += e.total;
+    else expense += e.total;
+  });
+
+  document.getElementById('statIncome').innerText = formatLKR(income);
+  document.getElementById('statExpense').innerText = formatLKR(expense);
+  document.getElementById('statProfit').innerText = formatLKR(income - expense);
+  document.getElementById('statBalance').innerText = formatLKR(income - expense);
+}
+
+function deleteEntry(id) {
+  if (confirm('Delete this transaction?')) {
+    entries = entries.filter(e => e.id!== id);
+    saveData();
+    renderTable();
+  }
+}
+
+function clearInputs() {
+  document.getElementById('details').value = '';
+  document.getElementById('amount').value = '';
+  document.getElementById('tax').value = '0';
+  document.getElementById('category').value = '';
+}
+
+function exportCSV() {
+  if (entries.length === 0) {
+    alert('No data to export');
+    return;
+  }
+
+  let csv = 'Date,Description,Category,Type,Amount LKR,Tax %,Tax Amount LKR,Total LKR\n';
+  entries.forEach(e => {
+    csv += `${e.date},"${e.details}",${e.category},${e.type},${e.amount},${e.tax},${e.taxAmount},${e.total}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `accounts_${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function clearData() {
+  if (confirm('Delete ALL transactions? This cannot be undone.')) {
+    entries = [];
+    saveData();
+    renderTable();
+  }
+}
+
+window.onload = () => {
+  document.getElementById('date').valueAsDate = new Date();
+  loadData();
+  renderTable();
+  updateStats();
+};
+</script>
+
+</body>
+</html>
