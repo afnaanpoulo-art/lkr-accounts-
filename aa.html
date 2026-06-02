@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Glass Master - Single Invoice System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root { 
+            --primary: #002b5c; 
+            --secondary: #4a6b82; 
+            --accent: #2e7d32; 
+            --danger: #c62828;
+            --bg: #f4f6f9; 
+            --card-bg: #ffffff;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Roboto, system-ui, sans-serif; background: var(--bg); color: #333; padding: 15px; min-height: 100vh; }
+        
+        .app-container { 
+            max-width: 1500px; 
+            margin: auto; 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 20px; 
+        }
+        
+        @media (min-width: 1100px) { 
+            .app-container { grid-template-columns: 420px 1fr; align-items: start; }
+            .previews-grid { position: sticky; top: 15px; }
+        }
+
+        .card { 
+            background: var(--card-bg); 
+            padding: 22px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+            border-top: 4px solid var(--primary); 
+            margin-bottom: 15px; 
+        }
+        h2 { color: var(--primary); font-size: 1.05rem; margin-bottom: 18px; border-bottom: 2px solid #eef2f5; padding-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+        
+        label { display: block; font-weight: 700; font-size: 11px; margin-bottom: 6px; color: #5a6a85; text-transform: uppercase; }
+        input, select { width: 100%; padding: 11px 14px; border: 1.5px solid #dcdfe4; border-radius: 8px; font-size: 14px; background: #ffffff; color: #2d3748; transition: border-color 0.2s; }
+        input:focus, select:focus { border-color: var(--primary); outline: none; background: #fff; }
+        .row { display: flex; gap: 12px; margin-bottom: 14px; }
+        
+        .btn { cursor: pointer; padding: 14px; border: none; border-radius: 8px; font-weight: 700; width: 100%; text-transform: uppercase; font-size: 13px; transition: all 0.2s; letter-spacing: 0.5px; }
+        .btn-add { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(0,43,92,0.2); }
+        .btn-add:hover { background: #001f42; }
+        .btn-download { background: var(--primary); color: white; font-size: 11px; padding: 6px 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; width: auto; }
+        .btn-delete { border: 1px solid var(--danger); background: #fff; color: var(--danger); padding: 4px 8px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 12px; }
+        .btn-delete:hover { background: var(--danger); color: #fff; }
+        
+        .bill-wrapper { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+        .bill-title-bar { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 12px 18px; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12px; color: var(--primary); letter-spacing: 0.5px; }
+        
+        .bill-capture-zone { padding: 10px; overflow-x: auto; background: #f1f5f9; }
+        .bill-box { width: 175mm; min-height: 240mm; padding: 18mm 15mm; margin: auto; background: white; color: #000; box-sizing: border-box; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+        .bill-header { border-bottom: 3.5px solid var(--primary); margin-bottom: 22px; display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 10px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+        th { text-align: left; background: #f8fafc; border-bottom: 2px solid var(--primary); padding: 10px 6px; font-size: 9.5pt; color: var(--primary); font-weight: 700; text-transform: uppercase; }
+        td { padding: 11px 6px; border-bottom: 1px solid #edf2f7; font-size: 10pt; font-weight: 600; color: #1a202c; }
+        
+        .total-box { margin-top: 25px; width: 100%; max-width: 300px; margin-left: auto; background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .total-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 10pt; color: #4a5568; }
+        .grand-total { font-size: 13.5pt; font-weight: 800; color: var(--primary); border-top: 2px solid var(--primary); margin-top: 8px; padding-top: 8px; }
+        
+        .hide-for-capture { display: none !important; }
+        #inventory-list { max-height: 160px; overflow-y: auto; border: 1px solid #e2e8f0; padding: 8px; border-radius: 8px; background: #fafafa; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <!-- LEFT PANEL: CONTROLS -->
+    <div class="controls">
+        <div class="card">
+            <h2>Client & Invoice Base</h2>
+            <div class="row">
+                <div style="flex:1.5"><label>Customer Name</label><input type="text" id="custName" oninput="updateUI()" placeholder="Walking Client"></div>
+                <div style="flex:1.2"><label>WhatsApp Number</label><input type="number" id="custPhone" oninput="updateUI()" placeholder="77xxxxxxx"></div>
+            </div>
+            <div class="row">
+                <div style="flex:1"><label>Special Remarks</label><input type="text" id="billRemarks" oninput="updateUI()" placeholder="No modifications after cut"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Item & Measurement Processing</h2>
+            <div class="row">
+                <div style="flex:0.8"><label>PCS</label><input type="number" id="pcs" value="1"></div>
+                <div style="flex:2.2"><label>Select Glass Type</label><select id="glassType" onchange="syncPrice()"></select></div>
+            </div>
+            <div class="row">
+                <div style="flex:1"><label>Length</label><input type="number" id="lVal" placeholder="0.00"></div>
+                <div style="flex:1"><label>Width</label><input type="number" id="wVal" placeholder="0.00"></div>
+                <div style="flex:1"><label>Unit Type</label><select id="unit"><option>INCH</option><option>MM</option><option>CM</option><option>FT</option></select></div>
+            </div>
+            <div class="row">
+                <div style="flex:1"><label>Rate / Sqft</label><input type="number" id="price"></div>
+                <div style="flex:1"><label>Edge Amount</label><input type="number" id="edge" value="0"></div>
+            </div>
+            
+            <hr style="border: 0; border-top: 1px dashed #ced4da; margin: 15px 0;">
+            
+            <div class="row" style="background: #f8fafc; padding: 12px; border: 1.5px dashed #002b5c; border-radius: 8px;">
+                <div style="flex:1"><label style="color:var(--primary); font-weight:800;">Total Wastage Sqft</label><input type="number" id="globalWastageSqft" value="0" oninput="calcFinal()"></div>
+                <div style="flex:1"><label style="color:var(--primary); font-weight:800;">Wastage Price / Sqft</label><input type="number" id="globalWastagePrice" value="0" oninput="calcFinal()"></div>
+            </div>
+
+            <div class="row" style="margin-top:14px;">
+                <div style="flex:1"><label>Discount Amount</label><input type="number" id="disc" value="0" oninput="calcFinal()"></div>
+                <div style="flex:1"><label>Advance Payment</label><input type="number" id="adv" value="0" oninput="calcFinal()"></div>
+            </div>
+            <input type="hidden" id="editIdx" value="-1">
+            <button class="btn btn-add" id="addBtn" onclick="addItem()">+ Insert Glass Item</button>
+        </div>
+
+        <div class="card">
+            <h2>Inventory Setup (From Excel Sheet)</h2>
+            <div class="row">
+                <input type="text" id="newGName" placeholder="E.g., CUSTOM GLASS 8MM" style="flex:2">
+                <input type="number" id="newGPrice" placeholder="Rate" style="flex:1">
+            </div>
+            <button class="btn" style="background:#6c757d; color:white; padding:10px 12px; font-size:11px; margin-bottom:10px;" onclick="addNewGlass()">Add To Base Catalog</button>
+            <div id="inventory-list"></div>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL: PREVIEW -->
+    <div class="previews-grid">
+        <div class="bill-wrapper">
+            <div class="bill-title-bar">
+                <span>OFFICIAL INVOICE PREVIEW</span>
+                <button class="btn btn-download" onclick="downloadImage('main-bill', 'Official_Invoice')">💾 Save Invoice Image</button>
+            </div>
+            <div class="bill-capture-zone">
+                <div id="main-bill" class="bill-box">
+                    <div class="bill-header">
+                        <div><h1 style="margin:0; font-size: 24pt; color: var(--primary); font-weight: 900;">INVOICE</h1><p class="billDate" style="font-weight:700; margin:2px 0 0 0; font-size:9.5pt; color:#4a5568;"></p></div>
+                        <div style="text-align:right"><h2 style="border:none; margin:0; padding:0; color:var(--primary); font-size:14pt;">GLASS MASTER</h2><p style="font-size:8.5pt; color:#718096;">Statement of Account</p></div>
+                    </div>
+                    <div style="margin-bottom: 20px; font-size: 11px; line-height: 1.4;">
+                        <p style="margin:0; color:#718096; font-weight: 700;">CUSTOMER DETAILS:</p>
+                        <p class="pName" style="font-size: 13pt; font-weight: 800; color:#1a202c; margin:2px 0;">GUEST CUSTOMER</p>
+                        <p style="margin:0; font-weight: 600;">Contact: +94 <span class="pPhone">---------</span></p>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Description</th><th>Size</th><th>Qty</th><th>Sqft</th><th>Edge</th><th>Total</th><th class="no-print-col"></th></tr></thead>
+                            <tbody id="mainBillTable"></tbody>
+                        </table>
+                    </div>
+                    <div class="pRemarksSection" style="margin-top: 18px; border-left: 3px solid var(--primary); padding-left: 10px; display: none; font-size:11px;"><p style="color:#4a5568;">REMARKS: <span class="pRemarks" style="font-weight:700; color:#000;"></span></p></div>
+                    
+                    <div class="total-box">
+                        <div class="total-row"><span>Sub Total:</span><span class="pSub">0.00</span></div>
+                        <div class="total-row" style="color: #9c4221; font-weight: 700;"><span>Wastage Charge:</span><span class="pWasteTotal">0.00</span></div>
+                        <div class="total-row" style="color:var(--danger)"><span>Discount Given:</span><span class="pDisc">0.00</span></div>
+                        <div class="total-row grand-total"><span>NET TOTAL:</span><span class="pNet">0.00</span></div>
+                        <div class="total-row"><span>Advance Paid:</span><span class="pAdv">0.00</span></div>
+                        <div class="total-row" style="font-weight:800; border-top:1px solid #718096; margin-top:5px; padding-top:5px; color:#000;"><span>BALANCE DUE:</span><span class="pBal">0.00</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Exact mapping from Excel Sheet: "Screenshot (12).png"
+    const defaultInventory = [
+        {n: "PLAN GLASS 3MM", p: 150},
+        {n: "PLAN GLASS 5MM", p: 250},
+        {n: "PLAN GLASS 6MM", p: 350},
+        {n: "PLAN GLASS 8MM", p: 450},
+        {n: "PLAN GLASS 10MM", p: 550},
+        {n: "PLAN GLASS 12MM", p: 650},
+        {n: "TINTED PLAN GLASS 3MM", p: 230},
+        {n: "TINTED PLAN GLASS 5MM", p: 400},
+        {n: "PINHAT GLASS 5MM", p: 400},
+        {n: "PLAN MAL GLASS 3MM", p: 250},
+        {n: "TINTED MAL GLASS 3MM", p: 280},
+        {n: "COLOUR MAL GLASS 3MM", p: 350},
+        {n: "REFLECTIVE GLASS 3.5MM", p: 400},
+        {n: "REFLECTIVE GLASS 5MM", p: 650},
+        {n: "CR MIRROR GLASS 3MM", p: 500},
+        {n: "CR MIRROR GLASS 5MM", p: 900},
+        {n: "MONI MIRROR GUARDIAN 3MM", p: 650},
+        {n: "MONI MIRROR GUARDIAN 5MM", p: 1000}
+    ];
+
+    let inventory = JSON.parse(localStorage.getItem('glass_inv')) || defaultInventory;
+    let items = [];
+
+    function init() {
+        renderInv(); updateGlassSelect();
+        const dateStr = new Date().toLocaleDateString('en-GB').toUpperCase();
+        document.querySelectorAll('.billDate').forEach(el => el.innerText = dateStr);
+    }
+
+    function renderInv() {
+        document.getElementById('inventory-list').innerHTML = inventory.map((x,i) => `<div style="display:flex; justify-content:space-between; padding:5px 2px; border-bottom:1px solid #edf2f7; font-size:11px; font-weight:600;"><span>${x.n}</span><span>Rs.${x.p} <b style="color:var(--danger); cursor:pointer; margin-left:5px;" onclick="delInv(${i})">X</b></span></div>`).join('');
+    }
+
+    function delInv(i) { inventory.splice(i,1); localStorage.setItem('glass_inv', JSON.stringify(inventory)); renderInv(); updateGlassSelect(); }
+
+    function addNewGlass() {
+        const n = document.getElementById('newGName').value, p = document.getElementById('newGPrice').value;
+        if(!n || !p) return;
+        inventory.push({n: n.toUpperCase(), p: parseFloat(p)});
+        localStorage.setItem('glass_inv', JSON.stringify(inventory));
+        renderInv(); updateGlassSelect();
+        document.getElementById('newGName').value=''; document.getElementById('newGPrice').value='';
+    }
+
+    function updateGlassSelect() {
+        document.getElementById('glassType').innerHTML = inventory.map(x => `<option value="${x.p}">${x.n}</option>`).join('');
+        syncPrice();
+    }
+
+    function syncPrice() { document.getElementById('price').value = document.getElementById('glassType').value; }
+
+    function updateUI() {
+        const name = document.getElementById('custName').value.toUpperCase() || "GUEST CUSTOMER";
+        const phone = document.getElementById('custPhone').value || "---------";
+        const rem = document.getElementById('billRemarks').value.toUpperCase();
+
+        document.querySelectorAll('.pName').forEach(el => el.innerText = name);
+        document.querySelectorAll('.pPhone').forEach(el => el.innerText = phone);
+        
+        document.querySelectorAll('.pRemarksSection').forEach(el => el.style.display = rem ? 'block' : 'none');
+        document.querySelectorAll('.pRemarks').forEach(el => el.innerText = rem);
+    }
+
+    function getSqFt(inch) {
+        if (inch <= 12) return 1.0;
+        if (inch <= 18) return 1.5;
+        return Math.ceil(inch / 6) * 0.5;
+    }
+
+    function addItem() {
+        const l = parseFloat(document.getElementById('lVal').value), w = parseFloat(document.getElementById('wVal').value);
+        if(!l || !w) return;
+        const u = document.getElementById('unit').value, p = parseFloat(document.getElementById('price').value);
+        const e = parseFloat(document.getElementById('edge').value) || 0, q = parseInt(document.getElementById('pcs').value);
+        const editIdx = parseInt(document.getElementById('editIdx').value);
+        
+        let lI = l, wI = w;
+        if(u==="MM") { lI=l/25.4; wI=w/25.4; } else if(u==="CM") { lI=l/2.54; wI=w/2.54; } else if(u==="FT") { lI=l*12; wI=w*12; }
+        
+        const itemSqft = getSqFt(lI) * getSqFt(wI) * q;
+        const finalCost = (itemSqft * p) + e;
+
+        const entry = { 
+            name: document.getElementById('glassType').options[document.getElementById('glassType').selectedIndex].text, 
+            size: l+"x"+w+" "+u, 
+            q, 
+            sqft: itemSqft, 
+            total: finalCost, 
+            raw: {l,w,u,p,e,q} 
+        };
+        
+        if(editIdx > -1) { items[editIdx] = entry; document.getElementById('editIdx').value = "-1"; document.getElementById('addBtn').innerText = "+ Insert Glass Item"; }
+        else { items.push(entry); }
+        render();
+        ['lVal','wVal','edge'].forEach(id => document.getElementById(id).value = (id==='edge') ? "0" : "");
+    }
+
+    function render() {
+        const mainTbody = document.getElementById('mainBillTable');
+        mainTbody.innerHTML = "";
+        let sub = 0;
+        
+        items.forEach((item, i) => {
+            sub += item.total;
+            
+            mainTbody.innerHTML += `<tr>
+                <td>${item.name}</td>
+                <td>${item.size}</td>
+                <td>${item.q}</td>
+                <td>${item.sqft.toFixed(2)}</td>
+                <td>${item.raw.e.toFixed(2)}</td>
+                <td>${item.total.toFixed(2)}</td>
+                <td class="no-print-col">
+                    <div style="display:flex; gap:4px;">
+                        <button style="border:1px solid #cbd5e1; padding:4px 6px; border-radius:4px; background:#fff; cursor:pointer;" onclick="editItem(${i})">✎</button>
+                        <button class="btn-delete" onclick="removeItem(${i})">×</button>
+                    </div>
+                </td>
+            </tr>`;
+        });
+        
+        document.querySelectorAll('.pSub').forEach(el => el.innerText = sub.toLocaleString('en-US',{minFractionDigits:2}));
+        calcFinal();
+    }
+
+    function editItem(i) {
+        const r = items[i].raw;
+        document.getElementById('lVal').value=r.l; document.getElementById('wVal').value=r.w;
+        document.getElementById('price').value=r.p; document.getElementById('edge').value=r.e;
+        document.getElementById('pcs').value=r.q; document.getElementById('unit').value=r.u;
+        
+        const select = document.getElementById('glassType');
+        for (let idx = 0; idx < select.options.length; idx++) {
+            if (select.options[idx].text === items[i].name) { select.selectedIndex = idx; break; }
+        }
+        document.getElementById('editIdx').value=i; document.getElementById('addBtn').innerText="UPDATE LINE ITEM";
+    }
+
+    function removeItem(i) {
+        if(confirm("Confirm deletion of item entry?")) {
+            items.splice(i, 1);
+            render();
+        }
+    }
+
+    function calcFinal() {
+        const sub = parseFloat(document.querySelector('.pSub').innerText.replace(/,/g,'')) || 0;
+        const globalWastageSqft = parseFloat(document.getElementById('globalWastageSqft').value) || 0;
+        const globalWastagePrice = parseFloat(document.getElementById('globalWastagePrice').value) || 0;
+        const totalWastageCharge = globalWastageSqft * globalWastagePrice;
+        
+        const d = parseFloat(document.getElementById('disc').value) || 0;
+        const a = parseFloat(document.getElementById('adv').value) || 0;
+        const netTotal = (sub + totalWastageCharge) - d;
+        const balance = netTotal - a;
+
+        document.querySelectorAll('.pWasteTotal').forEach(el => el.innerText = totalWastageCharge.toFixed(2));
+        document.querySelectorAll('.pDisc').forEach(el => el.innerText = d.toFixed(2));
+        document.querySelectorAll('.pNet').forEach(el => el.innerText = netTotal.toLocaleString('en-US',{minFractionDigits:2}));
+        document.querySelectorAll('.pAdv').forEach(el => el.innerText = a.toFixed(2));
+        document.querySelectorAll('.pBal').forEach(el => el.innerText = balance.toLocaleString('en-US',{minFractionDigits:2}));
+    }
+
+    async function downloadImage(divId, fileName) {
+        const element = document.getElementById(divId);
+        const actionCols = element.querySelectorAll('.no-print-col');
+        
+        actionCols.forEach(c => c.classList.add('hide-for-capture'));
+        const canvas = await html2canvas(element, { scale: 3, useCORS: true });
+        const imgData = canvas.toDataURL('image/png');
+        
+        const link = document.createElement('a');
+        link.download = `${document.getElementById('custName').value || 'Guest'}_${fileName}.png`;
+        link.href = imgData;
+        link.click();
+        actionCols.forEach(c => c.classList.remove('hide-for-capture'));
+    }
+    init();
+</script>
+</body>
+</html>
